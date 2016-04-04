@@ -1,0 +1,172 @@
+diff --git a/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.hpp b/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.hpp
+index 8cb6365..570b449 100644
+--- a/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.hpp
++++ b/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.hpp
+@@ -41,6 +41,10 @@ public:
+     pb_variable_array<FieldT> unreduced_output;
+     pb_variable_array<FieldT> reduced_output;
+     std::vector<lastbits_gadget<FieldT> > reduce_output;
++
++    std::shared_ptr<digest_variable<FieldT>> internal_input;
++    std::shared_ptr<digest_variable<FieldT>> internal_output;
++    std::shared_ptr<digest_variable<FieldT>> internal_iv;
+ public:
+     pb_linear_combination_array<FieldT> prev_output;
+     pb_variable_array<FieldT> new_block;
+diff --git a/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.tcc b/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.tcc
+index 82c9780..8e2a9f4 100644
+--- a/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.tcc
++++ b/src/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.tcc
+@@ -11,6 +11,8 @@
+  * @copyright  MIT license (see LICENSE file)
+  *****************************************************************************/
+ 
++#include "crypto/sha256.h"
++
+ #ifndef SHA256_GADGET_TCC_
+ #define SHA256_GADGET_TCC_
+ 
+@@ -27,6 +29,14 @@ sha256_compression_function_gadget<FieldT>::sha256_compression_function_gadget(p
+     new_block(new_block),
+     output(output)
+ {
++    if (pb.unsafe_speedup) {
++        internal_input.reset(new digest_variable<FieldT>(pb, 512, "internal_input"));
++        internal_output.reset(new digest_variable<FieldT>(pb, 256, "internal_output"));
++        internal_iv.reset(new digest_variable<FieldT>(pb, 256, "internal_iv"));
++
++        return;
++    }
++
+     /* message schedule and inputs for it */
+     packed_W.allocate(pb, 64, FMT(this->annotation_prefix, " packed_W"));
+     message_schedule.reset(new sha256_message_schedule_gadget<FieldT>(pb, new_block, packed_W, FMT(this->annotation_prefix, " message_schedule")));
+@@ -83,6 +93,39 @@ sha256_compression_function_gadget<FieldT>::sha256_compression_function_gadget(p
+ template<typename FieldT>
+ void sha256_compression_function_gadget<FieldT>::generate_r1cs_constraints()
+ {
++    if (this->pb.unsafe_speedup) {
++        // The internal output needs to equal the final output
++        // digest. This prevents another witness from overwriting
++        // the digest -- since the constraints will fail.
++        for (size_t i = 0; i < 256; i++) {
++            this->pb.add_r1cs_constraint(r1cs_constraint<FieldT>(
++                1,
++                internal_output->bits[i],
++                output.bits[i]
++            ), "FAKE_SHA256_OUTPUT");
++        }
++
++        // Do the same for the input data.
++        for (size_t i = 0; i < 512; i++) {
++            this->pb.add_r1cs_constraint(r1cs_constraint<FieldT>(
++                1,
++                internal_input->bits[i],
++                new_block[i]
++            ), "FAKE_SHA256_INPUT");
++        }
++
++        // Do the same for the IV
++        for (size_t i = 0; i < 256; i++) {
++            this->pb.add_r1cs_constraint(r1cs_constraint<FieldT>(
++                1,
++                internal_iv->bits[i],
++                prev_output[i]
++            ), "FAKE_SHA256_IV");
++        }
++
++        return;
++    }
++
+     message_schedule->generate_r1cs_constraints();
+     for (size_t i = 0; i < 64; ++i)
+     {
+@@ -111,6 +154,63 @@ void sha256_compression_function_gadget<FieldT>::generate_r1cs_constraints()
+ template<typename FieldT>
+ void sha256_compression_function_gadget<FieldT>::generate_r1cs_witness()
+ {
++    if (this->pb.unsafe_speedup) {
++        // Just perform SHA256 on the input.
++
++        std::vector<bool> input_iv;
++        std::vector<bool> input_digest;
++
++        for (size_t i = 0; i < 256; i++) {
++            this->pb.val(internal_iv->bits[i]) = this->pb.lc_val(prev_output[i]);
++        }
++
++        for (size_t i = 0; i < 512; i++) {
++            input_digest.push_back(this->pb.val(new_block[i]) == FieldT::one());
++            this->pb.val(internal_input->bits[i]) = this->pb.val(new_block[i]);
++        }
++
++        for (size_t i = 0; i < 256; i++) {
++            input_iv.push_back(this->pb.lc_val(prev_output[i]) == FieldT::one());
++        }
++
++        CSHA256 hasher;
++        for (size_t i = 0; i < 8; i++) {
++            hasher.s[i] = 0;
++            for (size_t j = 0; j < 32; j++) {
++                hasher.s[i] |= (input_iv[(i * 32) + j] ? 0x00000001 : 0) << (31 - j);
++            }
++        }
++
++        std::vector<unsigned char> digest_v;
++        for (size_t i = 0; i < 64; i++) {
++            unsigned char b = 0;
++            for (size_t j = 0; j < 8; j++) {
++                b |= (input_digest[(i * 8) + j] ? 0x01 : 0) << (7 - j);
++            }
++            digest_v.push_back(b);
++        }
++        assert(digest_v.size() == 64);
++        hasher.Write(&digest_v[0], 64);
++
++        std::vector<unsigned char> final_digest(32, 0x00);
++        hasher.FinalizeNoPadding(&final_digest[0]);
++        assert(final_digest.size() == 32);
++
++        for (size_t i = 0; i < 32; i++) {
++            for (size_t j = 0; j < 8; j++) {
++                if (final_digest[i] & (0x01 << (7 - j))) {
++                    this->pb.val(internal_output->bits[(i * 8) + j]) = FieldT::one();
++                    this->pb.val(output.bits[(i * 8) + j]) = FieldT::one();
++                } else {
++                    this->pb.val(internal_output->bits[(i * 8) + j]) = FieldT::zero();
++                    this->pb.val(output.bits[(i * 8) + j]) = FieldT::zero();
++                }
++            }
++        }
++
++        return;
++    }
++
+     message_schedule->generate_r1cs_witness();
+ 
+ #ifdef DEBUG
+diff --git a/src/gadgetlib1/protoboard.hpp b/src/gadgetlib1/protoboard.hpp
+index a9c30b4..4548e70 100644
+--- a/src/gadgetlib1/protoboard.hpp
++++ b/src/gadgetlib1/protoboard.hpp
+@@ -37,6 +37,7 @@ private:
+ 
+ public:
+     protoboard();
++    bool unsafe_speedup;
+ 
+     void clear_values();
+ 
+diff --git a/src/gadgetlib1/protoboard.tcc b/src/gadgetlib1/protoboard.tcc
+index 61f50ad..b32b1da 100644
+--- a/src/gadgetlib1/protoboard.tcc
++++ b/src/gadgetlib1/protoboard.tcc
+@@ -15,7 +15,7 @@
+ namespace libsnark {
+ 
+ template<typename FieldT>
+-protoboard<FieldT>::protoboard()
++protoboard<FieldT>::protoboard() : unsafe_speedup(false)
+ {
+     constant_term = FieldT::one();
+ 
