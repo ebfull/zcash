@@ -334,6 +334,11 @@ BOOST_AUTO_TEST_CASE( deserializeInvalid ) {
     BOOST_CHECK_THROW({ss >> newTreeSmall;}, std::ios_base::failure);
 }
 
+BOOST_AUTO_TEST_CASE( testRootOfBlankTree )
+{
+    BOOST_CHECK(ZCIncrementalMerkleTree().root() == uint256());
+}
+
 BOOST_AUTO_TEST_CASE( testZeroElements ) {
     for (int start = 0; start < 20; start++) {
         ZCIncrementalMerkleTree newTree;

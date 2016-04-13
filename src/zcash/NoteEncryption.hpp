@@ -9,6 +9,8 @@ https://github.com/zcash/zips/blob/master/protocol/protocol.pdf
 #include <boost/array.hpp>
 #include "uint256.h"
 
+#include "zcash/Zcash.h"
+
 namespace libzcash {
 
 #define NOTEENCRYPTION_AUTH_BYTES 16
@@ -71,7 +73,7 @@ uint256 random_uint256();
 
 }
 
-typedef libzcash::NoteEncryption<216> ZCNoteEncryption;
-typedef libzcash::NoteDecryption<216> ZCNoteDecryption;
+typedef libzcash::NoteEncryption<ZCASH_NOTEPLAINTEXT_LEADING + ZCASH_V_SIZE + ZCASH_RHO_SIZE + ZCASH_R_SIZE + ZCASH_MEMO_SIZE> ZCNoteEncryption;
+typedef libzcash::NoteDecryption<ZCASH_NOTEPLAINTEXT_LEADING + ZCASH_V_SIZE + ZCASH_RHO_SIZE + ZCASH_R_SIZE + ZCASH_MEMO_SIZE> ZCNoteDecryption;
 
 #endif /* ZC_NOTE_ENCRYPTION_H_ */

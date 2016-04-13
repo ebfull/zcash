@@ -23,8 +23,8 @@ BOOST_AUTO_TEST_CASE(noteencryption)
 
     ZCNoteEncryption b = ZCNoteEncryption(uint256());
 
-    boost::array<unsigned char, 216> message;
-    for (unsigned char i = 0; i < 216; i++) {
+    boost::array<unsigned char, 201> message;
+    for (unsigned char i = 0; i < 201; i++) {
         // Fill the message with dummy data
         message[i] = (unsigned char) i;
     }
