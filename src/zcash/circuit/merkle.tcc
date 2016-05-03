@@ -14,6 +14,7 @@ public:
         digest_variable<FieldT> root,
         pb_variable<FieldT>& enforce
     ) : gadget<FieldT>(pb) {
+        pb.unsafe_speedup = true;
         positions.allocate(pb, INCREMENTAL_MERKLE_TREE_DEPTH);
         authvars.reset(new merkle_authentication_path_variable<FieldT, sha256_gadget>(
             pb, INCREMENTAL_MERKLE_TREE_DEPTH, "auth"
@@ -28,9 +29,11 @@ public:
             enforce,
             ""
         ));
+        pb.unsafe_speedup = false;
     }
 
     void generate_r1cs_constraints() {
+        this->pb.unsafe_speedup = true;
         for (size_t i = 0; i < INCREMENTAL_MERKLE_TREE_DEPTH; i++) {
             // TODO: This might not be necessary, and doesn't
             // appear to be done in libsnark's tests, but there
@@ -45,9 +48,11 @@ public:
 
         authvars->generate_r1cs_constraints();
         auth->generate_r1cs_constraints();
+        this->pb.unsafe_speedup = false;
     }
 
     void generate_r1cs_witness(const MerklePath& path) {
+        this->pb.unsafe_speedup = true;
         // TODO: Change libsnark so that it doesn't require this goofy
         // number thing in its API.
         size_t path_index = libzerocash::convertVectorToInt(path.index);
@@ -56,5 +61,6 @@ public:
 
         authvars->generate_r1cs_witness(path_index, path.authentication_path);
         auth->generate_r1cs_witness();
+        this->pb.unsafe_speedup = false;
     }
 };

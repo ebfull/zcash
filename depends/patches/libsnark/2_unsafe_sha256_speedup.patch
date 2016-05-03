@@ -166,7 +166,7 @@ index 61f50ad..b32b1da 100644
  
  template<typename FieldT>
 -protoboard<FieldT>::protoboard()
-+protoboard<FieldT>::protoboard() : unsafe_speedup(true)
++protoboard<FieldT>::protoboard() : unsafe_speedup(false)
  {
      constant_term = FieldT::one();
  
