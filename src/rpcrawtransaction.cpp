@@ -96,6 +96,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, Object& entry)
         Object pour;
 
         pour.push_back(Pair("anchor", pourtx.anchor.GetHex()));
+        pour.push_back(Pair("proof", HexStr(pourtx.proof.begin(), pourtx.proof.end())));
 
         {
             Array serials;

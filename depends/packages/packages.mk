@@ -1,4 +1,4 @@
-zerocash_packages := libsnark libgmp libsodium
+zerocash_packages := libsnark libgmp libsodium xbyak ate-pairing
 packages := boost openssl $(zerocash_packages) googletest
 native_packages := native_ccache native_comparisontool
 
