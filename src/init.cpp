@@ -1261,8 +1261,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // These must be disabled for now, they are buggy and we probably don't
     // want any of libsnark's profiling in production anyway.
-    libsnark::inhibit_profiling_info = true;
-    libsnark::inhibit_profiling_counters = true;
+    //libsnark::inhibit_profiling_info = true;
+    //libsnark::inhibit_profiling_counters = true;
 
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
