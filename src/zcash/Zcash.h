@@ -15,4 +15,6 @@
 #define ZCASH_R_SIZE 32
 #define ZCASH_MEMO_SIZE 128
 
+#define ZKSNARK_PROOF_SIZE 584
+
 #endif // _ZCCONSTANTS_H_

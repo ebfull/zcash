@@ -134,14 +134,6 @@ void static RandomTransaction(CMutableTransaction &tx, bool fSingle) {
             pourtx.ciphertexts[1] = {insecure_rand() % 100, insecure_rand() % 100};
             pourtx.macs[0] = GetRandHash();
             pourtx.macs[1] = GetRandHash();
-            {
-                std::vector<unsigned char> txt;
-                int prooflen = insecure_rand() % 1000;
-                for (int i = 0; i < prooflen; i++) {
-                    txt.push_back(insecure_rand() % 256);
-                }
-                pourtx.proof = std::string(txt.begin(), txt.end());
-            }
 
             tx.vpour.push_back(pourtx);
         }
