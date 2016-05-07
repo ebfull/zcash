@@ -1099,7 +1099,7 @@ void CWallet::WitnessBucketCommitment(std::vector<boost::optional<uint256>> comm
         pindex = chainActive.Next(pindex);
     }
 
-    // TODO: #604; Select a root via some heuristic.
+    // TODO: #93; Select a root via some heuristic.
     final_anchor = tree.root();
 
     BOOST_FOREACH(boost::optional<ZCIncrementalWitness>& wit, witnesses) {
