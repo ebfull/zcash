@@ -33,9 +33,13 @@ private:
     boost::array<std::shared_ptr<output_note_gadget<FieldT>>, NumOutputs> zk_output_notes;
 
 public:
-    // PRF_pk and PRF_rho each only have a 1-bit
-    // domain separation "nonce" for different macs.
+    // PRF_pk only has a 1-bit domain separation "nonce"
+    // for different hmacs.
     BOOST_STATIC_ASSERT(NumInputs <= 2);
+
+    // PRF_rho only has a 1-bit domain separation "nonce"
+    // for different output `rho`.
+    BOOST_STATIC_ASSERT(NumOutputs <= 2);
 
     joinsplit_gadget(protoboard<FieldT> &pb) : gadget<FieldT>(pb) {
         // Verification
