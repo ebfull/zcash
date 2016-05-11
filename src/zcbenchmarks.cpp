@@ -52,7 +52,7 @@ double benchmark_parameter_loading()
     auto newParams = ZCJoinSplit::Unopened();
 
     newParams->loadVerifyingKey(vk_path.string());
-    newParams->preloadProvingKey(pk_path.string());
+    newParams->setProvingKeyPath(pk_path.string());
     newParams->loadProvingKey();
 
     double ret = timer_stop();

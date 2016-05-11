@@ -616,7 +616,7 @@ static void ZC_LoadParams()
     elapsed = float(tv_end.tv_sec-tv_start.tv_sec) + (tv_end.tv_usec-tv_start.tv_usec)/float(1000000);
     LogPrintf("Loaded verification key in %fs seconds.\n", elapsed);
 
-    pzcashParams->preloadProvingKey(pk_path.string());
+    pzcashParams->setProvingKeyPath(pk_path.string());
 }
 
 /** Initialize bitcoin.
