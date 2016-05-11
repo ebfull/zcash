@@ -165,7 +165,7 @@ TEST(joinsplit, full_api_test)
 
     js = ZCJoinSplit::Unopened();
 
-    js->preloadProvingKey("./zcashTest.pk");
+    js->setProvingKeyPath("./zcashTest.pk");
     js->loadProvingKey();
     js->loadVerifyingKey("./zcashTest.vk");
 
