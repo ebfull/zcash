@@ -128,7 +128,7 @@ public:
         const std::string& proof,
         const uint256& pubKeyHash,
         const uint256& randomSeed,
-        const boost::array<uint256, NumInputs>& hmacs,
+        const boost::array<uint256, NumInputs>& macs,
         const boost::array<uint256, NumInputs>& nullifiers,
         const boost::array<uint256, NumOutputs>& commitments,
         uint64_t vpub_old,
@@ -149,7 +149,7 @@ public:
         auto witness = joinsplit_gadget<FieldT, NumInputs, NumOutputs>::witness_map(
             rt,
             h_sig,
-            hmacs,
+            macs,
             nullifiers,
             commitments,
             vpub_old,
@@ -167,7 +167,7 @@ public:
         uint256& ephemeralKey,
         const uint256& pubKeyHash,
         uint256& randomSeed,
-        boost::array<uint256, NumInputs>& hmacs,
+        boost::array<uint256, NumInputs>& macs,
         boost::array<uint256, NumInputs>& nullifiers,
         boost::array<uint256, NumOutputs>& commitments,
         uint64_t vpub_old,
@@ -224,10 +224,10 @@ public:
         }
 
         // Authenticate h_sig with each of the input
-        // spending keys, producing hmacs which protect
+        // spending keys, producing macs which protect
         // against malleability.
         for (size_t i = 0; i < NumInputs; i++) {
-            hmacs[i] = PRF_pk(inputs[i].key, i, h_sig);
+            macs[i] = PRF_pk(inputs[i].key, i, h_sig);
         }
 
         std::vector<FieldT> primary_input;
