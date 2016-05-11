@@ -31,11 +31,11 @@ private:
     uint256 r;
 
 public:
-    boost::array<unsigned char, ZCASH_MEMO_SIZE> memo;
+    boost::array<unsigned char, ZC_MEMO_SIZE> memo;
     
     NotePlaintext() {}
 
-    NotePlaintext(const Note& note, boost::array<unsigned char, ZCASH_MEMO_SIZE> memo);
+    NotePlaintext(const Note& note, boost::array<unsigned char, ZC_MEMO_SIZE> memo);
 
     Note note(const PaymentAddress& addr) const;
 
