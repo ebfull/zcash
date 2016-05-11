@@ -3,8 +3,6 @@
 
 #include <stdexcept>
 
-#include "crypto/sha256.h"
-
 #include "zcash/NoteEncryption.hpp"
 #include "zcash/prf.h"
 #include "crypto/sha256.h"
