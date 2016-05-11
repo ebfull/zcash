@@ -51,7 +51,7 @@ public:
                         );
 
     // TODO: #789
-    virtual void preloadProvingKey(std::string) = 0;
+    virtual void setProvingKeyPath(std::string) = 0;
     virtual void loadProvingKey() = 0;
 
     virtual void saveProvingKey(std::string path) = 0;

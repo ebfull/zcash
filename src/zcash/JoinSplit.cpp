@@ -78,7 +78,7 @@ public:
         ppzksnark_ppT::init_public_params();
     }
 
-    void preloadProvingKey(std::string path) {
+    void setProvingKeyPath(std::string path) {
         pkPath = path;
     }
 
