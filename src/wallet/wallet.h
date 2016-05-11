@@ -617,7 +617,7 @@ public:
     bool AddToWalletIfInvolvingMe(const CTransaction& tx, const CBlock* pblock, bool fUpdate);
     void EraseFromWallet(const uint256 &hash);
     void WitnessBucketCommitment(
-         std::vector<boost::optional<uint256>> commitments,
+         std::vector<uint256> commitments,
          std::vector<boost::optional<ZCIncrementalWitness>>& witnesses,
          uint256 &final_anchor);
     int ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate = false);

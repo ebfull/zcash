@@ -1051,7 +1051,7 @@ bool CWalletTx::WriteToDisk(CWalletDB *pwalletdb)
     return pwalletdb->WriteTx(GetHash(), *this);
 }
 
-void CWallet::WitnessBucketCommitment(std::vector<boost::optional<uint256>> commitments,
+void CWallet::WitnessBucketCommitment(std::vector<uint256> commitments,
                                       std::vector<boost::optional<ZCIncrementalWitness>>& witnesses,
                                       uint256 &final_anchor)
 {
@@ -1078,10 +1078,9 @@ void CWallet::WitnessBucketCommitment(std::vector<boost::optional<uint256>> comm
                     }
 
                     size_t i = 0;
-                    BOOST_FOREACH(boost::optional<uint256>& commitment, commitments) {
-                        if (commitment && (bucket_commitment == *commitment)) {
+                    BOOST_FOREACH(uint256& commitment, commitments) {
+                        if (bucket_commitment == commitment) {
                             witnesses.at(i) = tree.witness();
-                            commitment = boost::none;
                         }
                         i++;
                     }

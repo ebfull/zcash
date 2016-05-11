@@ -2574,7 +2574,7 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
     std::vector<JSOutput> vpourout;
     std::vector<Note> notes;
     std::vector<SpendingKey> keys;
-    std::vector<boost::optional<uint256>> commitments;
+    std::vector<uint256> commitments;
 
     BOOST_FOREACH(const Pair& s, inputs)
     {
