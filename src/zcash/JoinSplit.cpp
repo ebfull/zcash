@@ -212,8 +212,8 @@ public:
 
             for (size_t i = 0; i < NumOutputs; i++) {
                 // TODO: expose memo in the public interface
-                boost::array<unsigned char, ZC_MEMO_SIZE> memo;
-                memo[0] = 0xF6; // invalid UTF8 as per spec
+                // 0xF6 is invalid UTF8 as per spec
+                boost::array<unsigned char, ZC_MEMO_SIZE> memo = {{0xF6}};
 
                 NotePlaintext pt(output_notes[i], memo);
 
