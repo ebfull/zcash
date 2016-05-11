@@ -34,7 +34,7 @@ private:
 
 public:
     // PRF_pk only has a 1-bit domain separation "nonce"
-    // for different hmacs.
+    // for different macs.
     BOOST_STATIC_ASSERT(NumInputs <= 2);
 
     // PRF_rho only has a 1-bit domain separation "nonce"
