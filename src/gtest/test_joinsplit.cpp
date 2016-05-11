@@ -26,7 +26,7 @@ void test_full_api(ZCJoinSplit* js)
     uint64_t vpub_old = 10;
     uint64_t vpub_new = 0;
     uint256 pubKeyHash = random_uint256();
-    boost::array<uint256, 2> hmacs;
+    boost::array<uint256, 2> macs;
     boost::array<uint256, 2> nullifiers;
     boost::array<uint256, 2> commitments;
     uint256 rt = tree.root();
@@ -55,7 +55,7 @@ void test_full_api(ZCJoinSplit* js)
             ephemeralKey,
             pubKeyHash,
             randomSeed,
-            hmacs,
+            macs,
             nullifiers,
             commitments,
             vpub_old,
@@ -69,7 +69,7 @@ void test_full_api(ZCJoinSplit* js)
         proof,
         pubKeyHash,
         randomSeed,
-        hmacs,
+        macs,
         nullifiers,
         commitments,
         vpub_old,
@@ -129,7 +129,7 @@ void test_full_api(ZCJoinSplit* js)
             ephemeralKey,
             pubKeyHash,
             randomSeed,
-            hmacs,
+            macs,
             nullifiers,
             commitments,
             vpub_old,
@@ -143,7 +143,7 @@ void test_full_api(ZCJoinSplit* js)
         proof,
         pubKeyHash,
         randomSeed,
-        hmacs,
+        macs,
         nullifiers,
         commitments,
         vpub_old,
