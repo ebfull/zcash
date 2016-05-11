@@ -22,7 +22,7 @@ public:
         READWRITE(leadingByte);
 
         if (leadingByte != 0x92) {
-            throw std::ios_base::failure("unrecognized payment address version");
+            throw std::ios_base::failure("unrecognized payment address lead byte");
         }
 
         READWRITE(a_pk);

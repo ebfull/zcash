@@ -47,7 +47,7 @@ public:
         READWRITE(leadingByte);
 
         if (leadingByte != 0x00) {
-            throw std::ios_base::failure("version of NotePlaintext is invalid");
+            throw std::ios_base::failure("lead byte of NotePlaintext is not recognized");
         }
 
         READWRITE(value);

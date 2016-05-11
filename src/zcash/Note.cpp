@@ -68,6 +68,8 @@ NotePlaintext NotePlaintext::decrypt(const ZCNoteDecryption& decryptor,
     NotePlaintext ret;
     ss >> ret;
 
+    assert(ss.size() == 0);
+
     return ret;
 }
 
