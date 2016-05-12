@@ -25,13 +25,12 @@ public:
 };
 
 class NotePlaintext {
-private:
+public:
     uint64_t value;
     uint256 rho;
     uint256 r;
-
-public:
     boost::array<unsigned char, ZC_MEMO_SIZE> memo;
+
     
     NotePlaintext() {}
 
