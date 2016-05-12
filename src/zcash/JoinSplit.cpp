@@ -163,14 +163,14 @@ public:
     std::string prove(
         const boost::array<JSInput, NumInputs>& inputs,
         const boost::array<JSOutput, NumOutputs>& outputs,
-        boost::array<Note, NumOutputs>& output_notes,
-        boost::array<ZCNoteEncryption::Ciphertext, NumOutputs>& ciphertexts,
-        uint256& ephemeralKey,
+        boost::array<Note, NumOutputs>& out_notes,
+        boost::array<ZCNoteEncryption::Ciphertext, NumOutputs>& out_ciphertexts,
+        uint256& out_ephemeralKey,
         const uint256& pubKeyHash,
-        uint256& randomSeed,
-        boost::array<uint256, NumInputs>& macs,
-        boost::array<uint256, NumInputs>& nullifiers,
-        boost::array<uint256, NumOutputs>& commitments,
+        uint256& out_randomSeed,
+        boost::array<uint256, NumInputs>& out_macs,
+        boost::array<uint256, NumInputs>& out_nullifiers,
+        boost::array<uint256, NumOutputs>& out_commitments,
         uint64_t vpub_old,
         uint64_t vpub_new,
         const uint256& rt
@@ -181,14 +181,14 @@ public:
 
         // Compute nullifiers of inputs
         for (size_t i = 0; i < NumInputs; i++) {
-            nullifiers[i] = inputs[i].nullifier();
+            out_nullifiers[i] = inputs[i].nullifier();
         }
 
         // Sample randomSeed
-        randomSeed = random_uint256();
+        out_randomSeed = random_uint256();
 
         // Compute h_sig
-        uint256 h_sig = this->h_sig(randomSeed, nullifiers, pubKeyHash);
+        uint256 h_sig = this->h_sig(out_randomSeed, out_nullifiers, pubKeyHash);
 
         // Sample phi
         uint256 phi = random_uint256();
@@ -198,12 +198,12 @@ public:
             // Sample r
             uint256 r = random_uint256();
 
-            output_notes[i] = outputs[i].note(phi, r, i, h_sig);
+            out_notes[i] = outputs[i].note(phi, r, i, h_sig);
         }
 
         // Compute the output commitments
         for (size_t i = 0; i < NumOutputs; i++) {
-            commitments[i] = output_notes[i].cm();
+            out_commitments[i] = out_notes[i].cm();
         }
 
         // Encrypt the ciphertexts containing the note
@@ -216,19 +216,19 @@ public:
                 // 0xF6 is invalid UTF8 as per spec
                 boost::array<unsigned char, ZC_MEMO_SIZE> memo = {{0xF6}};
 
-                NotePlaintext pt(output_notes[i], memo);
+                NotePlaintext pt(out_notes[i], memo);
 
-                ciphertexts[i] = pt.encrypt(encryptor, outputs[i].addr.pk_enc);
+                out_ciphertexts[i] = pt.encrypt(encryptor, outputs[i].addr.pk_enc);
             }
 
-            ephemeralKey = encryptor.get_epk();
+            out_ephemeralKey = encryptor.get_epk();
         }
 
         // Authenticate h_sig with each of the input
         // spending keys, producing macs which protect
         // against malleability.
         for (size_t i = 0; i < NumInputs; i++) {
-            macs[i] = PRF_pk(inputs[i].key, i, h_sig);
+            out_macs[i] = PRF_pk(inputs[i].key, i, h_sig);
         }
 
         std::vector<FieldT> primary_input;
@@ -244,7 +244,7 @@ public:
                     rt,
                     h_sig,
                     inputs,
-                    output_notes,
+                    out_notes,
                     vpub_old,
                     vpub_new
                 );
