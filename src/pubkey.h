@@ -152,6 +152,13 @@ public:
         return Hash(vch, vch + size());
     }
 
+    //! Get the 256-bit hash of this public key for the Zcash protocol.
+    uint256 GetZcashHash() const
+    {
+        // TODO: #808 BLAKE2b-256(...)
+        return Hash(vch, vch + size());
+    }
+
     /*
      * Check syntactic correctness.
      * 

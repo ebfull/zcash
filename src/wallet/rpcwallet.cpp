@@ -18,6 +18,7 @@
 #include "walletdb.h"
 #include "primitives/transaction.h"
 #include "zcbenchmarks.h"
+#include "key.h"
 
 #include <stdint.h>
 
@@ -2650,21 +2651,33 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
         throw runtime_error("unsupported pour input/output counts");
     }
 
-    // TODO: #808
-    uint256 pubKeyHash;
+    CKey joinSplitPrivKey;
+    joinSplitPrivKey.MakeNewKey(true);
+
+    CMutableTransaction mtx(tx);
+    mtx.nVersion = 2;
+    mtx.joinSplitPubKey = joinSplitPrivKey.GetPubKey();
+
     CPourTx pourtx(*pzcashParams,
-                   pubKeyHash,
+                   mtx.joinSplitPubKey.GetZcashHash(),
                    anchor,
                    {vpourin[0], vpourin[1]},
                    {vpourout[0], vpourout[1]},
                    vpub_old,
                    vpub_new);
+    assert(pourtx.Verify(*pzcashParams, mtx.joinSplitPubKey.GetZcashHash()));
 
-    assert(pourtx.Verify(*pzcashParams, pubKeyHash));
-
-    CMutableTransaction mtx(tx);
-    mtx.nVersion = 2;
     mtx.vpour.push_back(pourtx);
+
+    // TODO: What is this parameter for? Do we just pass an empty one?
+    CScript scriptCode;
+    CTransaction signTx(mtx);
+    // TODO: need to special case value of nIn
+    uint256 dataToBeSigned = SignatureHash(scriptCode, signTx, -1, SIGHASH_ALL);
+    // TODO: this returns "one" on error, check that.
+
+    // Add the signature
+    joinSplitPrivKey.SignCompact(dataToBeSigned, mtx.joinSplitSig);
 
     CTransaction rawTx(mtx);
 
@@ -2678,7 +2691,7 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
         ss2 << ((unsigned char) 0x00);
         ss2 << pourtx.ephemeralKey;
         ss2 << pourtx.ciphertexts[0];
-        ss2 << pourtx.h_sig(*pzcashParams, pubKeyHash);
+        ss2 << pourtx.h_sig(*pzcashParams, mtx.joinSplitPubKey.GetZcashHash());
 
         encryptedBucket1 = HexStr(ss2.begin(), ss2.end());
     }
@@ -2687,7 +2700,7 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
         ss2 << ((unsigned char) 0x01);
         ss2 << pourtx.ephemeralKey;
         ss2 << pourtx.ciphertexts[1];
-        ss2 << pourtx.h_sig(*pzcashParams, pubKeyHash);
+        ss2 << pourtx.h_sig(*pzcashParams, mtx.joinSplitPubKey.GetZcashHash());
 
         encryptedBucket2 = HexStr(ss2.begin(), ss2.end());
     }
