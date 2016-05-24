@@ -14,6 +14,8 @@
 #include "script/script.h"
 #include "uint256.h"
 
+#include "sodium.h"
+
 using namespace std;
 
 typedef vector<unsigned char> valtype;

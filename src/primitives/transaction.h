@@ -304,7 +304,7 @@ public:
     const uint32_t nLockTime;
     const std::vector<CPourTx> vpour;
     // TODO: This should be an unsigned char[33] (or boost array)
-    const CPubKey joinSplitPubKey;
+    const CCompressedPubKey joinSplitPubKey;
     // TODO: This should be an unsigned char[64] (or boost array)
     const std::vector<unsigned char> joinSplitSig;
 
@@ -328,7 +328,7 @@ public:
         if (nVersion >= 2) {
             READWRITE(*const_cast<std::vector<CPourTx>*>(&vpour));
             if (vpour.size() > 0) {
-                READWRITE(*const_cast<CPubKey*>(&joinSplitPubKey));
+                READWRITE(*const_cast<CCompressedPubKey*>(&joinSplitPubKey));
                 READWRITE(*const_cast<std::vector<unsigned char>*>(&joinSplitSig));
             }
         }
@@ -385,7 +385,7 @@ struct CMutableTransaction
     uint32_t nLockTime;
     std::vector<CPourTx> vpour;
     // TODO: This should be an unsigned char[33] (or boost array)
-    CPubKey joinSplitPubKey;
+    CCompressedPubKey joinSplitPubKey;
     // TODO: This should be an unsigned char[64] (or boost array)
     std::vector<unsigned char> joinSplitSig;
 

@@ -2654,19 +2654,20 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
 
     CKey joinSplitPrivKey;
     joinSplitPrivKey.MakeNewKey(true);
+    CCompressedPubKey joinSplitPubKey(joinSplitPrivKey.GetPubKey());
 
     CMutableTransaction mtx(tx);
     mtx.nVersion = 2;
-    mtx.joinSplitPubKey = joinSplitPrivKey.GetPubKey();
+    mtx.joinSplitPubKey = joinSplitPubKey;
 
     CPourTx pourtx(*pzcashParams,
-                   mtx.joinSplitPubKey.GetZcashHash(),
+                   joinSplitPubKey.GetZcashHash(),
                    anchor,
                    {vpourin[0], vpourin[1]},
                    {vpourout[0], vpourout[1]},
                    vpub_old,
                    vpub_new);
-    assert(pourtx.Verify(*pzcashParams, mtx.joinSplitPubKey.GetZcashHash()));
+    assert(pourtx.Verify(*pzcashParams, joinSplitPubKey.GetZcashHash()));
 
     mtx.vpour.push_back(pourtx);
 
@@ -2695,7 +2696,7 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
         ss2 << ((unsigned char) 0x00);
         ss2 << pourtx.ephemeralKey;
         ss2 << pourtx.ciphertexts[0];
-        ss2 << pourtx.h_sig(*pzcashParams, mtx.joinSplitPubKey.GetZcashHash());
+        ss2 << pourtx.h_sig(*pzcashParams, joinSplitPubKey.GetZcashHash());
 
         encryptedBucket1 = HexStr(ss2.begin(), ss2.end());
     }
@@ -2704,7 +2705,7 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
         ss2 << ((unsigned char) 0x01);
         ss2 << pourtx.ephemeralKey;
         ss2 << pourtx.ciphertexts[1];
-        ss2 << pourtx.h_sig(*pzcashParams, mtx.joinSplitPubKey.GetZcashHash());
+        ss2 << pourtx.h_sig(*pzcashParams, joinSplitPubKey.GetZcashHash());
 
         encryptedBucket2 = HexStr(ss2.begin(), ss2.end());
     }
