@@ -19,6 +19,7 @@
 #include "primitives/transaction.h"
 #include "zcbenchmarks.h"
 #include "key.h"
+#include "script/interpreter.h"
 
 #include <stdint.h>
 
@@ -2669,12 +2670,15 @@ Value zc_raw_pour(const json_spirit::Array& params, bool fHelp)
 
     mtx.vpour.push_back(pourtx);
 
-    // TODO: What is this parameter for? Do we just pass an empty one?
+    // TODO: #966.
+    static const uint256 one(uint256S("0000000000000000000000000000000000000000000000000000000000000001"));
+    // Empty output script.
     CScript scriptCode;
     CTransaction signTx(mtx);
-    // TODO: need to special case value of nIn
-    uint256 dataToBeSigned = SignatureHash(scriptCode, signTx, -1, SIGHASH_ALL);
-    // TODO: this returns "one" on error, check that.
+    uint256 dataToBeSigned = SignatureHash(scriptCode, signTx, NOT_AN_INPUT, SIGHASH_ALL);
+    if (dataToBeSigned == one) {
+        throw runtime_error("SignatureHash failed");
+    }
 
     // Add the signature
     joinSplitPrivKey.SignCompact(dataToBeSigned, mtx.joinSplitSig);
