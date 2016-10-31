@@ -7,7 +7,6 @@
 #include "pow/tromp/equi_miner.h"
 
 #include "amount.h"
-#include "chainparams.h"
 #include "consensus/consensus.h"
 #include "consensus/validation.h"
 #include "hash.h"
@@ -109,13 +108,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
 
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
-    if (Params().MineBlocksOnDemand())
+    if (chainparams.MineBlocksOnDemand())
         pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
-
-    // Add dummy coinbase tx as first transaction
-    pblock->vtx.push_back(CTransaction());
-    pblocktemplate->vTxFees.push_back(-1); // updated at end
-    pblocktemplate->vTxSigOps.push_back(-1); // updated at end
 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);
@@ -132,12 +126,51 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
     unsigned int nBlockMinSize = GetArg("-blockminsize", DEFAULT_BLOCK_MIN_SIZE);
     nBlockMinSize = std::min(nBlockMaxSize, nBlockMinSize);
 
-    // Collect memory pool transactions into the block
-    CAmount nFees = 0;
-
     {
         LOCK2(cs_main, mempool.cs);
         CBlockIndex* pindexPrev = chainActive.Tip();
+        std::function<void(const uint256, double&, CAmount&)> f = [&]
+                (const uint256 hash, double &dPriorityDelta, CAmount &nFeeDelta) {
+            mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
+        };
+
+        FillNewBlock(pblock, pindexPrev,
+                     scriptPubKeyIn, chainparams,
+                     pblocktemplate->vTxFees,
+                     pblocktemplate->vTxSigOps,
+                     mempool.mapTx, f,
+                     nBlockMaxSize, nBlockPrioritySize, nBlockMinSize);
+
+        CValidationState state;
+        if (!TestBlockValidity(state, *pblock, pindexPrev, false, false))
+            throw std::runtime_error("CreateNewBlock(): TestBlockValidity failed");
+    }
+
+    return pblocktemplate.release();
+}
+
+void FillNewBlock(CBlock* pblock,
+                  CBlockIndex* pindexPrev,
+                  const CScript& scriptPubKeyIn,
+                  const CChainParams& chainparams,
+                  std::vector<CAmount>& vTxFees,
+                  std::vector<int64_t>& vTxSigOps,
+                  std::map<uint256, CTxMemPoolEntry>& mapTx,
+                  std::function<void(const uint256, double&, CAmount&)> mempoolApplyDeltas,
+                  unsigned int nBlockMaxSize,
+                  unsigned int nBlockPrioritySize,
+                  unsigned int nBlockMinSize)
+{
+    // Add dummy coinbase tx as first transaction
+    pblock->vtx.push_back(CTransaction());
+    vTxFees.push_back(-1); // updated at end
+    vTxSigOps.push_back(-1); // updated at end
+
+    // Collect memory pool transactions into the block
+    CAmount nFees = 0;
+
+    // Leaving indented to reduce diff
+    {
         const int nHeight = pindexPrev->nHeight + 1;
         pblock->nTime = GetAdjustedTime();
         const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
@@ -150,9 +183,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
 
         // This vector will be sorted into a priority queue:
         vector<TxPriority> vecPriority;
-        vecPriority.reserve(mempool.mapTx.size());
-        for (map<uint256, CTxMemPoolEntry>::iterator mi = mempool.mapTx.begin();
-             mi != mempool.mapTx.end(); ++mi)
+        vecPriority.reserve(mapTx.size());
+        for (map<uint256, CTxMemPoolEntry>::iterator mi = mapTx.begin();
+             mi != mapTx.end(); ++mi)
         {
             const CTransaction& tx = mi->second.GetTx();
 
@@ -175,7 +208,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
                     // This should never happen; all transactions in the memory
                     // pool should connect to either transactions in the chain
                     // or other transactions in the memory pool.
-                    if (!mempool.mapTx.count(txin.prevout.hash))
+                    if (!mapTx.count(txin.prevout.hash))
                     {
                         LogPrintf("ERROR: mempool transaction missing input\n");
                         if (fDebug) assert("mempool transaction missing input" == 0);
@@ -194,7 +227,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
                     }
                     mapDependers[txin.prevout.hash].push_back(porphan);
                     porphan->setDependsOn.insert(txin.prevout.hash);
-                    nTotalIn += mempool.mapTx[txin.prevout.hash].GetTx().vout[txin.prevout.n].nValue;
+                    nTotalIn += mapTx[txin.prevout.hash].GetTx().vout[txin.prevout.n].nValue;
                     continue;
                 }
                 const CCoins* coins = view.AccessCoins(txin.prevout.hash);
@@ -216,7 +249,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
             dPriority = tx.ComputePriority(dPriority, nTxSize);
 
             uint256 hash = tx.GetHash();
-            mempool.ApplyDeltas(hash, dPriority, nTotalIn);
+            mempoolApplyDeltas(hash, dPriority, nTotalIn);
 
             CFeeRate feeRate(nTotalIn-tx.GetValueOut(), nTxSize);
 
@@ -262,7 +295,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
             const uint256& hash = tx.GetHash();
             double dPriorityDelta = 0;
             CAmount nFeeDelta = 0;
-            mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
+            mempoolApplyDeltas(hash, dPriorityDelta, nFeeDelta);
             if (fSortedByFee && (dPriorityDelta <= 0) && (nFeeDelta <= 0) && (feeRate < ::minRelayTxFee) && (nBlockSize + nTxSize >= nBlockMinSize))
                 continue;
 
@@ -296,8 +329,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
 
             // Added
             pblock->vtx.push_back(tx);
-            pblocktemplate->vTxFees.push_back(nTxFees);
-            pblocktemplate->vTxSigOps.push_back(nTxSigOps);
+            vTxFees.push_back(nTxFees);
+            vTxSigOps.push_back(nTxSigOps);
             nBlockSize += nTxSize;
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
@@ -354,7 +387,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
         txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
 
         pblock->vtx[0] = txNew;
-        pblocktemplate->vTxFees[0] = -nFees;
+        vTxFees[0] = -nFees;
 
         // Randomise nonce
         arith_uint256 nonce = UintToArith256(GetRandHash());
@@ -369,14 +402,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
         UpdateTime(pblock, Params().GetConsensus(), pindexPrev);
         pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, Params().GetConsensus());
         pblock->nSolution.clear();
-        pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
-
-        CValidationState state;
-        if (!TestBlockValidity(state, *pblock, pindexPrev, false, false))
-            throw std::runtime_error("CreateNewBlock(): TestBlockValidity failed");
+        vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
     }
-
-    return pblocktemplate.release();
 }
 
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
