@@ -134,10 +134,13 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
             mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
         };
 
+        CCoinsViewCache view(pcoinsTip);
+
         FillNewBlock(pblock, pindexPrev,
                      scriptPubKeyIn, chainparams,
                      pblocktemplate->vTxFees,
                      pblocktemplate->vTxSigOps,
+                     view,
                      mempool.mapTx, f,
                      nBlockMaxSize, nBlockPrioritySize, nBlockMinSize);
 
@@ -155,6 +158,7 @@ void FillNewBlock(CBlock* pblock,
                   const CChainParams& chainparams,
                   std::vector<CAmount>& vTxFees,
                   std::vector<int64_t>& vTxSigOps,
+                  CCoinsViewCache& view,
                   std::map<uint256, CTxMemPoolEntry>& mapTx,
                   std::function<void(const uint256, double&, CAmount&)> mempoolApplyDeltas,
                   unsigned int nBlockMaxSize,
@@ -174,7 +178,6 @@ void FillNewBlock(CBlock* pblock,
         const int nHeight = pindexPrev->nHeight + 1;
         pblock->nTime = GetAdjustedTime();
         const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
-        CCoinsViewCache view(pcoinsTip);
 
         // Priority order to process transactions
         list<COrphan> vOrphan; // list memory doesn't move
