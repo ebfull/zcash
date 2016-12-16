@@ -1,8 +1,18 @@
 bin_PROGRAMS += \
-  zcash/GenerateParams 
+  zcash/GenerateParams \
+  zcash/CreateJoinSplit
 
 # tool for generating our public parameters
 zcash_GenerateParams_SOURCES = zcash/GenerateParams.cpp
+zcash_GenerateParams_LDADD = \
+  $(BOOST_LIBS) \
+  $(LIBZCASH) \
+  $(LIBBITCOIN_UTIL) \
+  $(LIBBITCOIN_CRYPTO) \
+  $(LIBZCASH_LIBS)
+
+# tool for profiling the creation of joinsplits
+zcash_CreateJoinSplit_SOURCES = zcash/CreateJoinSplit.cpp
 zcash_GenerateParams_LDADD = \
   $(BOOST_LIBS) \
   $(LIBZCASH) \
